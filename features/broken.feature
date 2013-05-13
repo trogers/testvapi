@@ -3,7 +3,7 @@ Feature: Ensure auth API meets some basic checks without authorization.
   I want to make sure identity API works publically at a basic level.
   Else throw some awesome alerts to why.
 
-  Scenario: Test GET on cloud identity root namespace
+  Scenario: breaking test on identity
     #Given my request has the auth token "12345"
     Given my request has the header "x-who-am-i" with the value "testvalueapi (qe+ops checks) (https://github.com/jonkelleyatrackspace/testvapi)"
     And my request endpoint is "https://identity.api.rackspacecloud.com"
@@ -20,8 +20,4 @@ Feature: Ensure auth API meets some basic checks without authorization.
      And the response json will NOT have path "versions.version[*].status" with value "DEPRECATEsD" failure means "JSON catalog is broken"
      And the response will NOT have status 999 failure means "critical error"
      And the response will have status 200 failure means "status not ok"
-
-
-
-
 

@@ -4,15 +4,15 @@
 # Runs all unit tests explicitly defined within onlinetests; returns 1 if failure.
 # This is good for Jenkens build failures and that sort of thing.
 
-onlinetests="broken.feature new.feature"
-#1tests=*.feature # Do every feature.
+onlinetests="new.feature"
 for test in $onlinetests; do
 	behave features/$test
-	echo "===================================================================================="
-	echo "===================================================================================="
 	if [ $? -ne 0 ]; then
-    	failed=1
+        failed=1
 	fi
+    echo "===================================================================================="
+    echo "===================================================================================="
+
 done
 
 if [[ $failed -eq 1 ]]; then

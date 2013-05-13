@@ -20,3 +20,7 @@ Feature: Ensure auth API meets some basic checks without authorization.
      And the response json will NOT have path "versions.version[*].status" with value "DEPRECATEsD" failure means "JSON catalog is broken"
      And the response will NOT have status 999 failure means "critical error"
      And the response will have status 200 failure means "status not ok"
+     
+
+
+
