@@ -41,6 +41,14 @@ class ansi:
     FAIL = '\033[91m'
     ENDC = '\033[0m'
 
+def assertfail(path,reason,logic,region=None,check=None):
+    # Slip in region ID, slip in checkID... for centralized logging solution later TODO XXX
+    #  ^^ This will be big. Dashboard real-time component peices coming soon.
+
+    # Right now we just raise exception.
+    raise AssertionError(ansi.OKBLUE + "\nRESOURCE .......: " + ansi.FAIL + str(path)   + 
+                         ansi.OKBLUE + "\nRCA ............: " + ansi.FAIL + str(reason) +
+                         ansi.OKBLUE + "\nUNDERLYING_LOGIC: " + ansi.FAIL + str(logic)  + ansi.ENDC)
 #########################################################################
 ## XXX ### The giant wall of importation devices.                      ##
 #########################################################################
@@ -83,12 +91,13 @@ def step(context, seconds):
 
 ##################################
 # Whens
-@when('I get "{path}"')                                                 #feature-complee
-def step(context, path):
+@when('I get "{path}" failure means "{reason}"')                                                 #feature-complee
+def step(context, path, reason):
     """ GET request within path context of server.
         You know, think: 
                         I get "cloud_account/9363835"
     """
+    context.requestpath = path
     url = urljoin(context.request_endpoint, path)
     try: # There's got to be a better way to set None if missing/attributerror
         timeout = context.request_timeout
@@ -100,8 +109,8 @@ def step(context, path):
     logging.info("=================== HTTP RESPONSE HEADERS  =================== \n" + str(context.response.headers))
     logging.info("=================== HTTP RESPONSE          =================== \n" + json.dumps(context.response.json()))
 
-@when('I delete "{path}"')                                              # TODO untested XXX
-def step(context, path):# XXX UNTESTED XXX
+@when('I delete "{path}" failure means "{reason}"')                                              # TODO untested XXX
+def step(context, path, reason):# XXX UNTESTED XXX
     """ Entirely untested.
         DELETE request within path context of server.
         You know, think: 
@@ -119,8 +128,8 @@ def step(context, path):# XXX UNTESTED XXX
     logging.info("=================== HTTP RESPONSE          =================== \n" + json.dumps(context.response.json()))
 
 #TODO @when('I post "{path}" payload file "{payload}"')    
-@when('I post "{path}" with payload "{payload}"')                        # feature-complete
-def step(context, path,payload):
+@when('I post "{path}" with payload "{payload}" failure means "{reason}"')                        # feature-complete
+def step(context, path,payload, reason):
     url = urljoin(context.request_endpoint, path)
     try: # There's got to be a better way to set None if missing/attributerror
         timeout = context.request_timeout
@@ -134,8 +143,8 @@ def step(context, path,payload):
     logging.info("=================== HTTP RESPONSE          =================== \n" + json.dumps(context.response.json()))
 
 #TODO @when('I put "{path}" payload file "{payload}"')  
-@when('I put "{path}" with payload "{payload}"')                        # TODO untested XXX
-def step(context, path,payload):
+@when('I put "{path}" with payload "{payload}" failure means "{reason}"')                        # TODO untested XXX
+def step(context, path,payload, reason):
     """ Entirely and completely untested """
     url = urljoin(context.request_endpoint, path)
     try: # There's got to be a better way to set None if missing/attributerror
@@ -152,68 +161,78 @@ def step(context, path,payload):
 
 ##################################
 # Thens
-@then('the response will contain string "{text}"')                      # feature-complete
-def step(context, text):
+@then('the response will contain string "{text}" failure means "{reason}"')                      # feature-complete
+def step(context, text, reason):
+    failure_logic   = 'Did not find `{text}` in response: {response}'.format(text=text,response=str( context.response.json() ))
     if text not in context.response.text:
-        raise AssertionError('Did not find `{text}` in response: {response}'.format(text=text,response=str( context.response.json() )))
+        assertfail(context.requestpath,reason,failure_logic)
      
-@then('the response will not contain string "{text}"')                  # feature-complete
-def step(context, text):
+@then('the response will not contain string "{text}" failure means "{reason}"')                  # feature-complete
+def step(context, text, reason):
     if text in context.response.text:
-        raise AssertionError('Found string `{text}` in response: {response}'.format(text=text,response=str( context.response.json() )))
-
-@then('the response will have the header "{header}" with the value "{value}"') # feature-complete
-def step(context, header, value):
+        failure_logic = 'Found string `{text}` in response: {response}'.format(text=text,response=str( context.response.json() ))
+        assertfail(context.requestpath,reason,failure_logic)
+@then('the response will have the header "{header}" with the value "{value}" failure means "{reason}"') # feature-complete
+def step(context, header, value, reason):
     if context.response.headers[header] != value:
-        raise AssertionError('HTTP header `{header}` => `{value}` missing in response.'.format(header=header,value=value) )
+        failure_logic = 'HTTP header `{header}` => `{value}` missing in response.'.format(header=header,value=value) 
+        assertfail(context.requestpath,reason,failure_logic)
 
-@then('the response will have the header "{header}"')                   # feature-complete
-def step(context, header):
+@then('the response will have the header "{header}" failure means "{reason}"')                   # feature-complete
+def step(context, header, reason):
     if header not in context.response.headers.keys():
 #        logging.debug("I saw these headers though...")
 #        for k, v in context.response.headers.iteritems():
 #            logging.debug("header: " + k + " => " + v)
-        raise AssertionError('Missing header `{header}` in response.'.format(header=header) )
+        failure_logic = 'Missing header `{header}` in response.'.format(header=header) 
+        assertfail(context.requestpath,reason,failure_logic)
 
-@then('the response will not have the header "{header}" with the value "{value}"')# feature-complete
-def step(context, header, value):
+@then('the response will not have the header "{header}" with the value "{value}" failure means "{reason}"')# feature-complete
+def step(context, header, value, reason):
     if context.response.headers[header] == value:
-        raise AssertionError('HTTP header `{header}` => `{value}` found in response.'.format(header=header,value=value) )
+        failure_logic = 'HTTP header `{header}` => `{value}` found in response.'.format(header=header,value=value) 
+        assertfail(context.requestpath,reason,failure_logic)
 
-@then('the response will not have the header "{header}"')               # feature-complete
-def step(context, header):
+@then('the response will not have the header "{header}" failure means "{reason}"')               # feature-complete
+def step(context, header,reason):
     if context.response.headers[header]:
-        raise AssertionError('HTTP header `{header}` => `{value} found in response.'.format(header=header,value=context.response.headers[header] ))
+        failure_logic = 'HTTP header `{header}` => `{value} found in response.'.format(header=header,value=context.response.headers[header] )
+        assertfail(context.requestpath,reason,failure_logic)
 
-@then('the response json will have path "{path}" with value "{value}"') # feature-complete
-def step(context, path, value):
+@then('the response json will have path "{path}" with value "{value}" failure means "{reason}"') # feature-complete
+def step(context, path, value, reason):
     # Check path exists 
     if not context.jsonsearch.pathexists(context.response.json(),path,None):
-        raise AssertionError('Response json does not have path {path}'.format(path=path))
+        failure_logic = 'Response json does not have path {path}'.format(path=path)
+        assertfail(context.requestpath,reason,failure_logic)
 
     # Check value exists 
     if not value in context.jsonsearch.returnpath(context.response.json(),path):
-        raise AssertionError('Response json path {path} has no value matching {value}'.format(path=path,value=value))
+        failure_logic = 'Response json path {path} has no value matching {value}'.format(path=path,value=value)
+        assertfail(context.requestpath,reason,failure_logic)
 
-@then('the response json will not have path "{path}" with value "{value}"') # feature-complete
-def step(context, path, value):
+@then('the response json will not have path "{path}" with value "{value}" failure means "{reason}"') # feature-complete
+def step(context, path, value, reason):
     # Check path exists 
     if context.jsonsearch.pathexists(context.response.json(),path,None):
         # Check value exists 
         if value in context.jsonsearch.returnpath(context.response.json(),path):
-            raise AssertionError('Response json path {path} has value matching {value}'.format(path=path,value=value))
+            failure_logic = 'Response json path {path} has value matching {value}'.format(path=path,value=value)
+            assertfail(context.requestpath,reason,failure_logic)
 
-@then('the response json will have path "{path}"')                      # feature-complete
-def step(context, path):
+@then('the response json will have path "{path}" failure means "{reason}"')                      # feature-complete
+def step(context, path, reason):
     #raise Exception(context.response.json())
     if not context.jsonsearch.pathexists(context.response.json(),path,None):
-        raise AssertionError('Response json does not have path {path}'.format(path=path))
+        failure_logic = 'Response json does not have path {path}'.format(path=path)
+        assertfail(context.requestpath,reason,failure_logic)
 
-@then('the response json will not have path "{path}"')                  # feature-complete
-def step(context, path):
+@then('the response json will not have path "{path}" failure means "{reason}"')                  # feature-complete
+def step(context, path, reason):
     #raise Exception(context.response.json())
     if context.jsonsearch.pathexists(context.response.json(),path,None):
-        raise AssertionError('Response json does not have path {path}'.format(path=path))
+        failure_logic = 'Response json does not have path {path}'.format(path=path)
+
 
 def get_status_code(status):
     try:
@@ -222,14 +241,16 @@ def get_status_code(status):
         # Trick to accept status strings like 'not_found', as well.
         return getattr(requests.codes, status)
 
-@then('the response will have status {status}')
-def step(context, status):
+@then('the response will have status {status} failure means "{reason}"')
+def step(context, status, reason):
     status = get_status_code(status)
     if context.response.status_code != status:
-        raise AssertionError('Response status is {response.status_code}, not {status}'.format(response=context.response, status=status))
+        failure_logic = 'Response status is {response.status_code}, not {status}'.format(response=context.response, status=status)
+        assertfail(context.requestpath,reason,failure_logic)
 
-@then('the response will not have status {status}')
-def step(context, status):
+@then('the response will not have status {status} failure means "{reason}"')
+def step(context, status, reason):
     status = get_status_code(status)
     if context.response.status_code == status:
-        raise AssertionError('Response status is {status}'.format(status=status))
+        failure_logic = 'Response status is {status}'.format(status=status)
+        assertfail(context.requestpath,reason,failure_logic)
