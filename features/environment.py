@@ -1,5 +1,5 @@
 # Bootstraps big things.
-
+#  Makes things globally available within behave contexts
 import jmespath # Used by class.
 class jsonxpath(object):
     """ This class allows you to:
