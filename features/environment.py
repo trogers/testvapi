@@ -1,5 +1,5 @@
-# Bootstraps big things.
-#  Makes things globally available within behave contexts
+# Puts things within global scope.
+
 import jmespath # Used by class.
 class jsonxpath(object):
     """ This class allows you to:
@@ -61,33 +61,10 @@ class jsonxpath(object):
             except TypeError:
                 return False
 
-
 def before_all(context):
-
     context.request_headers = {} # Define this dictionary context for use in step functions.
     context.jsonsearch = jsonxpath()
 
     if not context.config.log_capture:
         import logging
         logging.basicConfig(level=logging.DEBUG)
-
-
-
-#jxp = jsonxpath(data)
-#print jxp.returnpath('topping[*].type')  # Returns data structure
-#print jxp.pathexists('topping[*].type','Sugar') # True or false if path exists with type 'sugar'
-#print jxp.pathexists('toppieng[*].type',None) # True or false if path exists.
-#{
-#	"id": "0001",
-#	"topping":
-#		[
-#			{ "id": "5001", "type": "None" },
-#			{ "id": "5002", "type": "Glazed" },
-#			{ "id": "5005", "type": "Sugar" },
-#			{ "id": "5007", "type": "Powdered Sugar" },
-#			{ "id": "5006", "type": "Chocolate with Sprinkles" },
-#			{ "id": "5003", "type": "Chocolate" },
-#			{ "id": "5004", "type": "Maple" }
-#		]
-#}
-#
