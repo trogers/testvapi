@@ -1,12 +1,12 @@
 # Puts things within global scope.
 
-import jmespath # Used by class.
+import jsonpath
 class jsonxpath(object):
     """ This class allows you to:
         - Search for patterns and if they exist within a json path. 
         - Search if a json path exists.
         - Return the contents of a json path.
-        
+        TODO REWRITE THESE DOCS--------------------------------------
         Usage: Given this data:
             #{
             #	"id": "0001",
@@ -31,12 +31,13 @@ class jsonxpath(object):
     def returnpath(self,json,query):
         """ returnpath('topping[*].type')
             Returns data structure from json, else false """
-        try:       
-            return jmespath.search(query, json)
+        try:
+            print json
+            return jsonpath.jsonpath(json,query)
         except TypeError:
             return None
 
-    def pathexists(self,json,path,value):
+    def pathexists(self,json,path,value=None):
         """ Checks if JSON path exists with an explicit value.
             Returns true or false.
 
@@ -44,7 +45,7 @@ class jsonxpath(object):
             """
         if value == None:
             try:
-                results = jmespath.search(path, json)
+                results = jsonpath.jsonpath(json,path)
                 if results:
                     return True
                 else:
@@ -53,7 +54,7 @@ class jsonxpath(object):
                 return False
         else:
             try:
-                results = jmespath.search(path, json)
+                results = jsonpath.jsonpath(json,path)
                 if value in results: # If value in results; in event it is list.
                     return True
                 else:
