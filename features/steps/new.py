@@ -1,3 +1,15 @@
+remote_graylog = True # Should we log test results to greylog?
+
+#########################################################################
+## XXX ### The giant wall of importation devices.                      ##
+#########################################################################
+from behave import *                                                    # =>  Behave makes sure the API's behave, man.
+import requests                                                         # =>  HTTP ez bro.
+from urlparse import urljoin                                            # =>  Allows url manip.
+import logging; logging.basicConfig(level=logging.CRITICAL)             # =>  Only make CRIT filtered out,
+import json                                                             # =>  I presume a json api unittest will use this funct.
+#########################################################################
+
 """ This step test implements RESTful API testing towards any API, 
     but specifically tailored for Rackspace API testing.
     
@@ -33,38 +45,66 @@
 
     """
 class ansi:
-    __doc__ = "Just a cheap way to hijack ansi colors into strings. Muahahaha.."
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
+    __doc__ = """Inexpensive ansi color insertion hack."""
+    HEADER = '\033[95m';  OKBLUE = '\033[94m'; OKGREEN = '\033[92m'
+    WARNING = '\033[93m'; FAIL   = '\033[91m' ;ENDC    = '\033[0m'
 
-def assertfail(path,reason,logic,region=None,check=None):
-    # Slip in region ID, slip in checkID... for centralized logging solution later TODO XXX
-    #  ^^ This will be big. Dashboard real-time component peices coming soon.
+def get_status_code(status):
+    try:
+        return int(status)
+    except TypeError:
+        # Trick to accept status strings like 'not_found', as well.
+        return getattr(requests.codes, status)
 
-    # Right now we just raise exception.
-    raise AssertionError(ansi.OKBLUE + "\nRESOURCE .......: " + ansi.FAIL + str(path)   + 
+def assertfail(**kwargs):
+    """ This is just a big rollup process that processes failures with the data for dissemination.
+        Dumps relevant info to stdout as well as future hooks for graylog
+    """
+    if kwargs.get('graylog',False) == True:
+        _greylog = True
+    else: _greylog = False
+    verb            = kwargs.get('verb',None)               # VeRB USED
+    requesturl      = kwargs.get('requesturl',None)         # REQUEST URL
+    requesthead     = kwargs.get('requesthead',None)        # REQUEST HEADERS
+    request         = kwargs.get('request',None)            # REQUEST 
+    responsehead    = kwargs.get('responsehead',None)       # RESPONSE HEADERS
+    response        = kwargs.get('response',None)           # HTTP RAW RESPONSE
+    reason          = kwargs.get('reason',None)             # The reason we failed humanly aka RCA
+    logic           = kwargs.get('logic',None)              # The logic why we failed 'parse error'
+
+    # Logs some useful debugging data to stdout.
+    print('HTTP.DEBUG....HTTP.DEBUG....HTTP.DEBUG....HTTP.DEBUG....HTTP.DEBUG')
+    print('>>>> Request Head for (' + verb + " " + requesturl + ') <<<<')
+    print(requesthead)
+    print('>>>> Request Data <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+    print(request)
+    print('>>>> Response Head <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+    print(responsehead)
+    print('>>>> Response <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+    print(response)
+    print('END.HTTP.DEBUG....END.HTTP.DEBUG....END.HTTP.DEBUG....END.HTTP.DEB')
+
+    # This is our chance for remote publishing data!!!
+    if _greylog:
+        print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~IMAGINE THIS IS A gelf MSG ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    
+    # Raise typical unit testing exception.
+    raise AssertionError(ansi.OKBLUE + "\nRESOURCE .......: " + ansi.FAIL + str(requesturl)   + 
                          ansi.OKBLUE + "\nRCA ............: " + ansi.FAIL + str(reason) +
                          ansi.OKBLUE + "\nUNDERLYING_LOGIC: " + ansi.FAIL + str(logic)  + ansi.ENDC)
-#########################################################################
-## XXX ### The giant wall of importation devices.                      ##
-#########################################################################
-from behave import *                                                    # =>  Behave makes sure the API's behave, man.
-import requests                                                         # =>  HTTP ez bro.
-from urlparse import urljoin                                            # =>  Allows url manip.
-import logging; logging.basicConfig(level=logging.CRITICAL)             # =>  Only make CRIT filtered out,
-import json                                                             # =>  I presume a json api unittest will use this funct.
-#########################################################################
-logging.critical(ansi.OKBLUE + "=========================================================" + ansi.ENDC)# THX STYLE INTRO
-logging.critical(ansi.OKBLUE + "testvapi :: \n                          Test {value} api\n                          Tests the values of your beloved API.\n                          " + ansi.OKGREEN + "See github for more information.\n                          https://github.com/jonkelleyatrackspace/testvapi\n                          " + ansi.FAIL + "Author: Jon_K <jon.kelley@rackspace.com>" + ansi.ENDC)# THX STYLE INTRO
-logging.critical(ansi.OKBLUE + "=========================================================" + ansi.ENDC)# THX STYLE INTRO
+
+# Intro banner.
+if not remote_graylog:
+    logging.critical(ansi.OKBLUE + "=========================================================" + ansi.ENDC)# THX STYLE INTRO
+    logging.critical(ansi.OKBLUE + "testvapi :: \n                          Test {value} api\n                          Tests the values of your beloved API.\n                          " + ansi.OKGREEN + "See github for more information.\n                          https://github.com/jonkelleyatrackspace/testvapi\n                          " + ansi.FAIL + "Author: Jon_K <jon.kelley@rackspace.com>" + ansi.ENDC)# THX STYLE INTRO
+    logging.critical(ansi.OKBLUE + "=========================================================" + ansi.ENDC)# THX STYLE INTRO
+    
+
 # Givens
 @given('my request has the auth token "{token}"')                       #feature-complee
 def step(context, token):
-    context.execute_steps('My request has the HTTP header X-Auth-Token with the value ' + token)
+    """ shunt style Add x-auth-header for token automagically """
+    context.execute_steps(unicode("Given my request has the header \"x-auth-token\" with the value \"{token}\"".format(token=token)))
 
 @given('my request has the header "{header}" with the value "{value}"') #feature-complee
 def step(context, header, value):
@@ -105,9 +145,21 @@ def step(context, path, reason):
         timeout = None
 
     context.response = requests.get(url, timeout=timeout,headers=context.request_headers) # Makes full response.
-    logging.info("=================== HTTP REQUEST HEADERS   =================== \n" + str(context.request_headers))
-    logging.info("=================== HTTP RESPONSE HEADERS  =================== \n" + str(context.response.headers))
-    logging.info("=================== HTTP RESPONSE          =================== \n" + json.dumps(context.response.json()))
+    try:    _requestheaders     = str(context.request_headers)
+    except: _requestheaders     = None
+    try:    _request            = str(payload)
+    except: _request            = None
+    try:    _responseheaders    = str(context.response.headers)
+    except: _responseheaders    = None
+    try:    _response            = str(context.response.text)
+    except: _response            = "Not applicable (No data?)" 
+    context.httpstate = { 'requesturi'      : url ,
+                          'verb'            : 'GET' ,
+                          'requestheaders'  : _requestheaders ,
+                          'request'         : _request ,
+                          'responseheaders' : _responseheaders ,
+                          'response'        : _response ,
+                        }
 
 @when('I delete "{path}" failure means "{reason}"')                                              # TODO untested XXX
 def step(context, path, reason):# XXX UNTESTED XXX
@@ -123,10 +175,22 @@ def step(context, path, reason):# XXX UNTESTED XXX
         timeout = None
 
     context.response = requests.delete(url,timeout=timeout,headers=context.request_headers) # Makes full response.
-    logging.info("=================== HTTP REQUEST HEADERS   =================== \n" + str(context.request_headers))
-    logging.info("=================== HTTP RESPONSE HEADERS  =================== \n" + str(context.response.headers))
-    logging.info("=================== HTTP RESPONSE          =================== \n" + json.dumps(context.response.json()))
-
+    try:    _requestheaders     = str(context.request_headers)
+    except: _requestheaders     = None
+    try:    _request            = str(payload)
+    except: _request            = None
+    try:    _responseheaders    = str(context.response.headers)
+    except: _responseheaders    = None
+    try:    _response            = str(context.response.text)
+    except: _response            = "Not applicable (No data?)" 
+    
+    context.httpstate = { 'requesturi'      : url ,
+                          'verb'            : 'DELETE' ,
+                          'requestheaders'  : _requestheaders ,
+                          'request'         : _request ,
+                          'responseheaders' : _responseheaders ,
+                          'response'        : _response ,
+                        }
 #TODO @when('I post "{path}" payload file "{payload}"')    
 @when('I post "{path}" with payload "{payload}" failure means "{reason}"')                        # feature-complete
 def step(context, path,payload, reason):
@@ -137,11 +201,23 @@ def step(context, path,payload, reason):
         timeout = None
 
     context.response = requests.post(url, data=payload,timeout=timeout,headers=context.request_headers) # Makes full response.
-    logging.info("=================== HTTP REQUEST HEADERS   =================== \n" + str(context.request_headers))
-    logging.info("=================== HTTP REQUEST           =================== \n" + str(payload))
-    logging.info("=================== HTTP RESPONSE HEADERS  =================== \n" + str(context.response.headers))
-    logging.info("=================== HTTP RESPONSE          =================== \n" + json.dumps(context.response.json()))
+    try:    _requestheaders     = str(context.request_headers)
+    except: _requestheaders     = None
+    try:    _request            = str(payload)
+    except: _request            = None
+    try:    _responseheaders    = str(context.response.headers)
+    except: _responseheaders    = None
+    try:    _response            = str(context.response.text)
+    except: _response            = "Not applicable (No data?)" 
 
+    context.httpstate = { 'requesturi'      : url ,
+                          'verb'            : 'POST' ,
+                          'requestheaders'  : _requestheaders ,
+                          'request'         : _request ,
+                          'responseheaders' : _responseheaders ,
+                          'response'        : _response ,
+                        }
+    
 #TODO @when('I put "{path}" payload file "{payload}"')  
 @when('I put "{path}" with payload "{payload}" failure means "{reason}"')                        # TODO untested XXX
 def step(context, path,payload, reason):
@@ -153,9 +229,22 @@ def step(context, path,payload, reason):
         timeout = None
 
     context.response = requests.put(url, data=payload,timeout=timeout,headers=context.request_headers) # Makes full response.
-    logging.info("=================== HTTP REQUEST HEADERS   =================== \n" + str(context.request_headers))
-    logging.info("=================== HTTP REQUEST           =================== \n" + str(payload))
-    logging.info("=================== HTTP RESPONSE HEADERS  =================== \n" + str(context.response.headers))
+    try:    _requestheaders     = str(context.request_headers)
+    except: _requestheaders     = None
+    try:    _request            = str(payload)
+    except: _request            = None
+    try:    _responseheaders    = str(context.response.headers)
+    except: _responseheaders    = None
+    try:    _response            = str(context.response.text)
+    except: _response            = "Not applicable (No data?)" 
+
+    context.httpstate = { 'requesturi'      : url ,
+                          'verb'            : 'PUT' ,
+                          'requestheaders'  : _requestheaders ,
+                          'request'         : _request ,
+                          'responseheaders' : _responseheaders ,
+                          'response'        : _response ,
+                        }
 
 # TODO @when('I post "{path}" with multipart payload "{payload}"')      TODO 
 
@@ -163,20 +252,41 @@ def step(context, path,payload, reason):
 # Thens
 @then('the response will contain string "{text}" failure means "{reason}"')                      # feature-complete
 def step(context, text, reason):
-    failure_logic   = 'Did not find `{text}` in response: {response}'.format(text=text,response=str( context.response.json() ))
+    failure_logic   = 'Did not find expected text `{text}` in response: {response}'.format(text=text,response=str( context.response.json() ))
     if text not in context.response.text:
-        assertfail(context.requestpath,reason,failure_logic)
+        assertfail(verb=context.httpstate['verb'],
+                   requesturl=context.httpstate['requesturi'],
+                   requesthead=context.httpstate['requestheaders'],
+                   request=context.httpstate['request'],
+                   responsehead=context.httpstate['responseheaders'],
+                   response=context.httpstate['response'],
+                   reason=reason,
+                   logic=failure_logic)
      
 @then('the response will not contain string "{text}" failure means "{reason}"')                  # feature-complete
 def step(context, text, reason):
     if text in context.response.text:
         failure_logic = 'Found string `{text}` in response: {response}'.format(text=text,response=str( context.response.json() ))
-        assertfail(context.requestpath,reason,failure_logic)
+        assertfail(verb=context.httpstate['verb'],
+                   requesturl=context.httpstate['requesturi'],
+                   requesthead=context.httpstate['requestheaders'],
+                   request=context.httpstate['request'],
+                   responsehead=context.httpstate['responseheaders'],
+                   response=context.httpstate['response'],
+                   reason=reason,
+                   logic=failure_logic)
 @then('the response will have the header "{header}" with the value "{value}" failure means "{reason}"') # feature-complete
 def step(context, header, value, reason):
     if context.response.headers[header] != value:
-        failure_logic = 'HTTP header `{header}` => `{value}` missing in response.'.format(header=header,value=value) 
-        assertfail(context.requestpath,reason,failure_logic)
+        failure_logic = 'HTTP header `{header}` => `{value}` missing in response.'.format(header=header,value=value)
+        assertfail(verb=context.httpstate['verb'],
+                   requesturl=context.httpstate['requesturi'],
+                   requesthead=context.httpstate['requestheaders'],
+                   request=context.httpstate['request'],
+                   responsehead=context.httpstate['responseheaders'],
+                   response=context.httpstate['response'],
+                   reason=reason,
+                   logic=failure_logic)
 
 @then('the response will have the header "{header}" failure means "{reason}"')                   # feature-complete
 def step(context, header, reason):
@@ -185,72 +295,147 @@ def step(context, header, reason):
 #        for k, v in context.response.headers.iteritems():
 #            logging.debug("header: " + k + " => " + v)
         failure_logic = 'Missing header `{header}` in response.'.format(header=header) 
-        assertfail(context.requestpath,reason,failure_logic)
+        assertfail(verb=context.httpstate['verb'],
+                   requesturl=context.httpstate['requesturi'],
+                   requesthead=context.httpstate['requestheaders'],
+                   request=context.httpstate['request'],
+                   responsehead=context.httpstate['responseheaders'],
+                   response=context.httpstate['response'],
+                   reason=reason,
+                   logic=failure_logic)
 
 @then('the response will not have the header "{header}" with the value "{value}" failure means "{reason}"')# feature-complete
 def step(context, header, value, reason):
     if context.response.headers[header] == value:
-        failure_logic = 'HTTP header `{header}` => `{value}` found in response.'.format(header=header,value=value) 
-        assertfail(context.requestpath,reason,failure_logic)
+        failure_logic = 'HTTP header `{header}` => `{value}` found in response.'.format(header=header,value=value)
+        assertfail(verb=context.httpstate['verb'],
+                   requesturl=context.httpstate['requesturi'],
+                   requesthead=context.httpstate['requestheaders'],
+                   request=context.httpstate['request'],
+                   responsehead=context.httpstate['responseheaders'],
+                   response=context.httpstate['response'],
+                   reason=reason,
+                   logic=failure_logic)
 
 @then('the response will not have the header "{header}" failure means "{reason}"')               # feature-complete
 def step(context, header,reason):
     if context.response.headers[header]:
         failure_logic = 'HTTP header `{header}` => `{value} found in response.'.format(header=header,value=context.response.headers[header] )
-        assertfail(context.requestpath,reason,failure_logic)
+        assertfail(verb=context.httpstate['verb'],
+                   requesturl=context.httpstate['requesturi'],
+                   requesthead=context.httpstate['requestheaders'],
+                   request=context.httpstate['request'],
+                   responsehead=context.httpstate['responseheaders'],
+                   response=context.httpstate['response'],
+                   reason=reason,
+                   logic=failure_logic)
 
 @then('the response json will have path "{path}" with value "{value}" failure means "{reason}"') # feature-complete
 def step(context, path, value, reason):
-    # Check path exists 
-    if not context.jsonsearch.pathexists(context.response.json(),path,None):
-        failure_logic = 'Response json does not have path {path}'.format(path=path)
-        assertfail(context.requestpath,reason,failure_logic)
+    if not context.jsonsearch.pathexists(context.response.json(),path):
+        """ Verify if path exists first of all """
+        failure_logic = 'Response does not have path {path}'.format(path=path)
+        assertfail(verb=context.httpstate['verb'],
+                    requesturl=context.httpstate['requesturi'],
+                    requesthead=context.httpstate['requestheaders'],
+                    request=context.httpstate['request'],
+                    responsehead=context.httpstate['responseheaders'],
+                    response=context.httpstate['response'],
+                    reason=reason,
+                    logic=failure_logic)
 
-    # Check value exists 
+    # Needs to be able to convert unicode objects for all json
+    #  True to string "true"
+    # Ints to ints
+    # etc
+    try: # Unicode hack. Convert value from unicode list to integers.
+        value = int(value)
+    except TypeError:  # If it's not convertable, convert 
+        value = str(value) # <<<<<<<<<<< UNTESTED FAILOVER BEHAVIOR TODO
+    print "DEBssssssssssssssUG" + str(context.jsonsearch.returnpath(context.response.json(),path))
     if not value in context.jsonsearch.returnpath(context.response.json(),path):
+        """ Verify if value within returned list of results for that path. """
         failure_logic = 'Response json path {path} has no value matching {value}'.format(path=path,value=value)
-        assertfail(context.requestpath,reason,failure_logic)
+        assertfail(verb=context.httpstate['verb'],
+                    requesturl=context.httpstate['requesturi'],
+                    requesthead=context.httpstate['requestheaders'],
+                    request=context.httpstate['request'],
+                    responsehead=context.httpstate['responseheaders'],
+                    response=context.httpstate['response'],
+                    reason=reason,
+                    logic=failure_logic)
 
 @then('the response json will not have path "{path}" with value "{value}" failure means "{reason}"') # feature-complete
 def step(context, path, value, reason):
     # Check path exists 
-    if context.jsonsearch.pathexists(context.response.json(),path,None):
-        # Check value exists 
+    if context.jsonsearch.pathexists(context.response.json(),path):
+        """ Verify if path exists """
         if value in context.jsonsearch.returnpath(context.response.json(),path):
+            """ Verify if string is within path """
             failure_logic = 'Response json path {path} has value matching {value}'.format(path=path,value=value)
-            assertfail(context.requestpath,reason,failure_logic)
+            assertfail(verb=context.httpstate['verb'],
+                       requesturl=context.httpstate['requesturi'],
+                       requesthead=context.httpstate['requestheaders'],
+                       request=context.httpstate['request'],
+                       responsehead=context.httpstate['responseheaders'],
+                       response=context.httpstate['response'],
+                       reason=reason,
+                       logic=failure_logic)
 
 @then('the response json will have path "{path}" failure means "{reason}"')                      # feature-complete
 def step(context, path, reason):
     #raise Exception(context.response.json())
-    if not context.jsonsearch.pathexists(context.response.json(),path,None):
-        failure_logic = 'Response json does not have path {path}'.format(path=path)
-        assertfail(context.requestpath,reason,failure_logic)
+    if not context.jsonsearch.pathexists(context.response.json(),path):
+        """ Verify if path exists first of all """
+        failure_logic = 'Response does not have path {path}'.format(path=path)
+        assertfail(verb=context.httpstate['verb'],
+                    requesturl=context.httpstate['requesturi'],
+                    requesthead=context.httpstate['requestheaders'],
+                    request=context.httpstate['request'],
+                    responsehead=context.httpstate['responseheaders'],
+                    response=context.httpstate['response'],
+                    reason=reason,
+                    logic=failure_logic)
 
 @then('the response json will not have path "{path}" failure means "{reason}"')                  # feature-complete
 def step(context, path, reason):
-    #raise Exception(context.response.json())
-    if context.jsonsearch.pathexists(context.response.json(),path,None):
-        failure_logic = 'Response json does not have path {path}'.format(path=path)
+    if context.jsonsearch.pathexists(context.response.json(),path):
+        """ Verify if path exists , then fail """
+        failure_logic = 'Response json has path {path}'.format(path=path)
+        assertfail(verb=context.httpstate['verb'],
+                    requesturl=context.httpstate['requesturi'],
+                    requesthead=context.httpstate['requestheaders'],
+                    request=context.httpstate['request'],
+                    responsehead=context.httpstate['responseheaders'],
+                    response=context.httpstate['response'],
+                    reason=reason,
+                    logic=failure_logic)
 
-
-def get_status_code(status):
-    try:
-        return int(status)
-    except TypeError:
-        # Trick to accept status strings like 'not_found', as well.
-        return getattr(requests.codes, status)
 
 @then('the response will have status {status} failure means "{reason}"')
 def step(context, status, reason):
     status = get_status_code(status)
     if context.response.status_code != status:
         failure_logic = 'Response status is {response.status_code}, not {status}'.format(response=context.response, status=status)
-        assertfail(context.requestpath,reason,failure_logic)
+        assertfail(verb=context.httpstate['verb'],
+                   requesturl=context.httpstate['requesturi'],
+                   requesthead=context.httpstate['requestheaders'],
+                   request=context.httpstate['request'],
+                   responsehead=context.httpstate['responseheaders'],
+                   response=context.httpstate['response'],
+                   reason=reason,
+                   logic=failure_logic)
 
 @then('the response will not have status {status} failure means "{reason}"')
 def step(context, status, reason):
     status = get_status_code(status)
     if context.response.status_code == status:
         failure_logic = 'Response status is {status}'.format(status=status)
-        assertfail(context.requestpath,reason,failure_logic)
+        assertfail(verb=context.httpstate['verb'],
+                   requesturl=context.httpstate['requesturi'],
+                   requesthead=context.httpstate['requestheaders'],
+                   request=context.httpstate['request'],
+                   responsehead=context.httpstate['responseheaders'],
+                   response=context.httpstate['response'],
+                   reason=reason,
+                   logic=failure_logic)
