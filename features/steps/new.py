@@ -252,7 +252,8 @@ def step(context, path,payload, reason):
 # Thens
 @then('the response will contain string "{text}" failure means "{reason}"')                      # feature-complete
 def step(context, text, reason):
-    failure_logic   = 'Did not find expected text `{text}` in response: {response}'.format(text=text,response=str( context.response.json() ))
+    failure_logic   = 'Did not find expected text `{text}` in response: {response}'.format(text=text,response=str( context.response.text ))
+    print context.response.text
     if text not in context.response.text:
         assertfail(verb=context.httpstate['verb'],
                    requesturl=context.httpstate['requesturi'],
@@ -262,11 +263,11 @@ def step(context, text, reason):
                    response=context.httpstate['response'],
                    reason=reason,
                    logic=failure_logic)
-     
+
 @then('the response will not contain string "{text}" failure means "{reason}"')                  # feature-complete
 def step(context, text, reason):
     if text in context.response.text:
-        failure_logic = 'Found string `{text}` in response: {response}'.format(text=text,response=str( context.response.json() ))
+        failure_logic = 'Found string `{text}` in response: {response}'.format(text=text,response=str( context.response.text ))
         assertfail(verb=context.httpstate['verb'],
                    requesturl=context.httpstate['requesturi'],
                    requesthead=context.httpstate['requestheaders'],
@@ -330,10 +331,11 @@ def step(context, header,reason):
                    reason=reason,
                    logic=failure_logic)
 
-@then('the response json will have path "{path}" with value "{value}" failure means "{reason}"') # feature-complete
-def step(context, path, value, reason):
+@then('the response json will have path "{path}" with value "{value}" as "{valuetype}" failure means "{reason}"') # feature-complete
+def step(context, path, value, valuetype, reason):
+    # Check path exists 
     if not context.jsonsearch.pathexists(context.response.json(),path):
-        """ Verify if path exists first of all """
+        """ Verify if path exists first of all... else raise() """
         failure_logic = 'Response does not have path {path}'.format(path=path)
         assertfail(verb=context.httpstate['verb'],
                     requesturl=context.httpstate['requesturi'],
@@ -344,17 +346,22 @@ def step(context, path, value, reason):
                     reason=reason,
                     logic=failure_logic)
 
-    # Needs to be able to convert unicode objects for all json
-    #  True to string "true"
-    # Ints to ints
-    # etc
-    try: # Unicode hack. Convert value from unicode list to integers.
+    # Effing unicode strings need hacks to determine their type.
+    if valuetype == "int":
         value = int(value)
-    except TypeError:  # If it's not convertable, convert 
-        value = str(value) # <<<<<<<<<<< UNTESTED FAILOVER BEHAVIOR TODO
-    print "DEBssssssssssssssUG" + str(context.jsonsearch.returnpath(context.response.json(),path))
+    elif valuetype == "str":
+        value = str(value)
+    elif valuetype == "unicode":
+        value = unicode(value)
+    elif valuetype == "bool" or valuetype == "boolean":
+        if value == "true" or value == "True":
+            value = True
+        else:
+            value=False
+    # Check if value is there as desired.
     if not value in context.jsonsearch.returnpath(context.response.json(),path):
-        """ Verify if value within returned list of results for that path. """
+        """ Verify if value within returned list of results for that path.. else raise() """
+        logging.error(ansi.OKBLUE +  "Gherkin input was " + str(type(value)) + " with value \"" + str(value) + "\" ... remote side contained a list with " + str(context.jsonsearch.returnpath(context.response.json(),path)) + "\n"+ansi.ENDC )
         failure_logic = 'Response json path {path} has no value matching {value}'.format(path=path,value=value)
         assertfail(verb=context.httpstate['verb'],
                     requesturl=context.httpstate['requesturi'],
@@ -365,13 +372,26 @@ def step(context, path, value, reason):
                     reason=reason,
                     logic=failure_logic)
 
-@then('the response json will not have path "{path}" with value "{value}" failure means "{reason}"') # feature-complete
-def step(context, path, value, reason):
-    # Check path exists 
+@then('the response json will not have path "{path}" with value "{value}" as "{valuetype}" failure means "{reason}"') # feature-complete
+def step(context, path, value, valuetype, reason):
+    # If path even exists..
     if context.jsonsearch.pathexists(context.response.json(),path):
-        """ Verify if path exists """
+        # Effing unicode strings need hacks to determine their type.
+        if valuetype == "int":
+            value = int(value)
+        elif valuetype == "str":
+            value = str(value)
+        elif valuetype == "unicode":
+            value = unicode(value)
+        elif valuetype == "bool" or valuetype == "boolean":
+            if value == "true" or value == "True":
+                value = True
+            else:
+                value=False
+
         if value in context.jsonsearch.returnpath(context.response.json(),path):
-            """ Verify if string is within path """
+            """ Verify if string is within path, if so raise() """
+            logging.error(ansi.OKBLUE +  "Gherkin input was " + str(type(value)) + " with value \"" + str(value) + "\" ... remote side contained a list with " + str(context.jsonsearch.returnpath(context.response.json(),path)) + "\n"+ansi.ENDC )
             failure_logic = 'Response json path {path} has value matching {value}'.format(path=path,value=value)
             assertfail(verb=context.httpstate['verb'],
                        requesturl=context.httpstate['requesturi'],

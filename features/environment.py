@@ -1,5 +1,6 @@
 # Puts things within global scope.
 
+
 import jsonpath
 class jsonxpath(object):
     """ This class allows you to:
@@ -32,7 +33,6 @@ class jsonxpath(object):
         """ returnpath('topping[*].type')
             Returns data structure from json, else false """
         try:
-            print json
             return jsonpath.jsonpath(json,query)
         except TypeError:
             return None
