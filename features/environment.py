@@ -1,17 +1,22 @@
-# Puts things within global scope.
+#!/usr/bin/env python
 
-# -------- //  -------- //  -------- //  -------- //  -------- //  -------- //  -------- // 
-
-# -------- //  -------- //  -------- //  -------- //  -------- //  -------- //  -------- // 
+# This file puts things within a sort of global scope within behave.
 
 import jsonpath
 class jsonxpath(object):
-    """ This class allows you to:
+    """ <jon.kelley> May 1 2013
+        This is a helper class to the jsonpath module, making it easiest for our purposes
+        or use in the gherkin syntax. Also allows easier refactor if a newer module becomes available.
+        
+        I actually tried several x-path style JSON libraries for python;
+        including jmespath and others. jsonpath seems like the best. The rest sorta suck.
+        
+        Method features.
         - Search for patterns and if they exist within a json path. 
         - Search if a json path exists.
         - Return the contents of a json path.
-        TODO REWRITE THESE DOCS--------------------------------------
-        Usage: Given this data:
+
+        A inline usage example:
             #{
             #	"id": "0001",
             #	"topping":
@@ -25,19 +30,18 @@ class jsonxpath(object):
             #			{ "id": "5004", "type": "Maple" }
             #		]
             #}
-            #jxp = jsonxpath(data)
-            #print jxp.returnpath('topping[*].type')  # Returns data structure
-            #print jxp.pathexists('topping[*].type','Sugar') # True or false if path exists with type 'sugar'
-            #print jxp.pathexists('toppieng[*].type',None) # True or false if path exists.
-            
-        Based on https://github.com/boto/jmespath
+            #jxp = jsonxpath()
+            #print jxp.returnpath(data, 'topping[*].type')  # Returns data structure
+            #print jxp.pathexists(data, 'topping[*].type','Sugar') # True or false if path exists with type 'sugar'
+            #print jxp.pathexists(data, 'toppieng[*].type',None) # True or false if path exists.
+
         """
     def returnpath(self,json,query):
         """ returnpath('topping[*].type')
             Returns data structure from json, else false """
         try:
             return jsonpath.jsonpath(json,query)
-        except TypeError:
+        except TypeError:  # Return is path is missing.
             return None
 
     def pathexists(self,json,path,value=None):
@@ -46,30 +50,28 @@ class jsonxpath(object):
 
             If arguement 'value' == None; just returns True if path exists.
             """
-        if value == None:
+        if value == None: # If not searching for value, your verifying truth of a path... so
             try:
                 results = jsonpath.jsonpath(json,path)
                 if results:
-                    return True
+                    return True # Path exists! Results exist.
                 else:
                     return False
-            except TypeError:
+            except TypeError: # False if the path is nonexistant.
                 return False
-        else:
+        else: # You must have a value == so we will see if the value matches a value in the list.
             try:
                 results = jsonpath.jsonpath(json,path)
-                if value in results: # If value in results; in event it is list.
+                if value in results: # If value is contained within LIST of results; it exists
                     return True
-                else:
+                else: # It's not in the list, so its 
                     return False
-            except TypeError:
+            except TypeError: #  False if the path is nonexistant.
                 return False
 
 def before_all(context):
     context.request_headers = {} # Define this dictionary context for use in step functions.
-    # Register jsonsearch
-    context.jsonsearch = jsonxpath()
-
+    context.jsonsearch = jsonxpath() # Define this context so we can use it in there.
 
     if not context.config.log_capture:
         import logging
