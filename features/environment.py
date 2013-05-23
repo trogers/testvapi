@@ -1,5 +1,8 @@
 # Puts things within global scope.
 
+# -------- //  -------- //  -------- //  -------- //  -------- //  -------- //  -------- // 
+
+# -------- //  -------- //  -------- //  -------- //  -------- //  -------- //  -------- // 
 
 import jsonpath
 class jsonxpath(object):
@@ -64,7 +67,9 @@ class jsonxpath(object):
 
 def before_all(context):
     context.request_headers = {} # Define this dictionary context for use in step functions.
+    # Register jsonsearch
     context.jsonsearch = jsonxpath()
+
 
     if not context.config.log_capture:
         import logging
