@@ -56,13 +56,34 @@ def get_status_code(status):
         # Trick to accept status strings like 'not_found', as well.
         return getattr(requests.codes, status)
 
-def assertfail(**kwargs):
-    """ This is just a big rollup process that processes failures with the data for dissemination.
-        Dumps relevant info to stdout as well as future hooks for graylog
+
+#############################################
+from socket import *
+import zlib
+class Client():
+        def log(self, message, server='localhost', port=12201, maxChunkSize=8154):
+                graylog2_server = server
+                graylog2_port = port
+                maxChunkSize = maxChunkSize
+
+                UDPSock = socket(AF_INET,SOCK_DGRAM)
+                zmessage = zlib.compress(message)
+                UDPSock.sendto(zmessage,(graylog2_server,graylog2_port))
+                UDPSock.close()
+
+
+def assertionthing(**kwargs):
+    """ Assertion thing that rolls up the whole process good or bad.
+    
+    It's typically hooked by greylog for ops level inputs.
     """
+
     if kwargs.get('graylog',False) == True:
         _greylog = True
-    else: _greylog = False
+    if kwargs.get('success',False) == True:
+        _success = True # If successful, we change greylogs err level
+    else:
+        _success = False
     verb            = kwargs.get('verb',None)               # VeRB USED
     requesturl      = kwargs.get('requesturl',None)         # REQUEST URL
     requesthead     = kwargs.get('requesthead',None)        # REQUEST HEADERS
@@ -84,9 +105,28 @@ def assertfail(**kwargs):
     print(response)
     print('END.HTTP.DEBUG....END.HTTP.DEBUG....END.HTTP.DEBUG....END.HTTP.DEB')
 
-    # This is our chance for remote publishing data!!!
-    if _greylog:
-        print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~IMAGINE THIS IS A gelf MSG ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    # This does the graylog magic out.
+    if remote_graylog:
+        print('pew pew pew pew pew pew pew pew pew pew pew pew pew pew pew pew pew pew pew pew ')
+        print('  pew pew pew pew pew pew pew pew pew pew pew pew pew pew pew pew pew pew pew pew ')
+        message = {}
+        message['version']      = '1.0'
+        # Level:            DEC .............. Syslog level (0=emerg, 1=alert, 2=crit, 3=err, 4=warning, 5=notice, 6=info, 7=debug)
+        if _success:
+            message['level']    = '6'
+        else:
+            message['level']    = '3'
+        message['facility']     = 'valkyrie_testvapi.GELF'
+        message['host']         = 'fake-n01.prod.us.ccp.rackspace.net.example.com'
+        message['short_message'] = str(reason)
+        message['full_message'] = str(logic)
+        message['_httpverb']    = str(verb)
+        message['_requesturl'] = str(requesturl)
+        message['_responseheaders'] = str(responsehead)
+        message['_responsedata'] = str(response)
+        print('::: Graylog message sent as ' + str(message))
+        gelfy = Client()
+        gelfy.log(json.dumps(message),'10.14.247.240')
     
     # Raise typical unit testing exception.
     raise AssertionError(ansi.OKBLUE + "\nRESOURCE .......: " + ansi.FAIL + str(requesturl)   + 
@@ -253,9 +293,8 @@ def step(context, path,payload, reason):
 @then('the response will contain string "{text}" failure means "{reason}"')                      # feature-complete
 def step(context, text, reason):
     failure_logic   = 'Did not find expected text `{text}` in response: {response}'.format(text=text,response=str( context.response.text ))
-    print context.response.text
     if text not in context.response.text:
-        assertfail(verb=context.httpstate['verb'],
+        assertionthing(verb=context.httpstate['verb'],
                    requesturl=context.httpstate['requesturi'],
                    requesthead=context.httpstate['requestheaders'],
                    request=context.httpstate['request'],
@@ -268,7 +307,7 @@ def step(context, text, reason):
 def step(context, text, reason):
     if text in context.response.text:
         failure_logic = 'Found string `{text}` in response: {response}'.format(text=text,response=str( context.response.text ))
-        assertfail(verb=context.httpstate['verb'],
+        assertionthing(verb=context.httpstate['verb'],
                    requesturl=context.httpstate['requesturi'],
                    requesthead=context.httpstate['requestheaders'],
                    request=context.httpstate['request'],
@@ -280,7 +319,7 @@ def step(context, text, reason):
 def step(context, header, value, reason):
     if context.response.headers[header] != value:
         failure_logic = 'HTTP header `{header}` => `{value}` missing in response.'.format(header=header,value=value)
-        assertfail(verb=context.httpstate['verb'],
+        assertionthing(verb=context.httpstate['verb'],
                    requesturl=context.httpstate['requesturi'],
                    requesthead=context.httpstate['requestheaders'],
                    request=context.httpstate['request'],
@@ -296,7 +335,7 @@ def step(context, header, reason):
 #        for k, v in context.response.headers.iteritems():
 #            logging.debug("header: " + k + " => " + v)
         failure_logic = 'Missing header `{header}` in response.'.format(header=header) 
-        assertfail(verb=context.httpstate['verb'],
+        assertionthing(verb=context.httpstate['verb'],
                    requesturl=context.httpstate['requesturi'],
                    requesthead=context.httpstate['requestheaders'],
                    request=context.httpstate['request'],
@@ -309,7 +348,7 @@ def step(context, header, reason):
 def step(context, header, value, reason):
     if context.response.headers[header] == value:
         failure_logic = 'HTTP header `{header}` => `{value}` found in response.'.format(header=header,value=value)
-        assertfail(verb=context.httpstate['verb'],
+        assertionthing(verb=context.httpstate['verb'],
                    requesturl=context.httpstate['requesturi'],
                    requesthead=context.httpstate['requestheaders'],
                    request=context.httpstate['request'],
@@ -322,7 +361,7 @@ def step(context, header, value, reason):
 def step(context, header,reason):
     if context.response.headers[header]:
         failure_logic = 'HTTP header `{header}` => `{value} found in response.'.format(header=header,value=context.response.headers[header] )
-        assertfail(verb=context.httpstate['verb'],
+        assertionthing(verb=context.httpstate['verb'],
                    requesturl=context.httpstate['requesturi'],
                    requesthead=context.httpstate['requestheaders'],
                    request=context.httpstate['request'],
@@ -337,7 +376,7 @@ def step(context, path, value, valuetype, reason):
     if not context.jsonsearch.pathexists(context.response.json(),path):
         """ Verify if path exists first of all... else raise() """
         failure_logic = 'Response does not have path {path}'.format(path=path)
-        assertfail(verb=context.httpstate['verb'],
+        assertionthing(verb=context.httpstate['verb'],
                     requesturl=context.httpstate['requesturi'],
                     requesthead=context.httpstate['requestheaders'],
                     request=context.httpstate['request'],
@@ -363,7 +402,7 @@ def step(context, path, value, valuetype, reason):
         """ Verify if value within returned list of results for that path.. else raise() """
         logging.error(ansi.OKBLUE +  "Gherkin input was " + str(type(value)) + " with value \"" + str(value) + "\" ... remote side contained a list with " + str(context.jsonsearch.returnpath(context.response.json(),path)) + "\n"+ansi.ENDC )
         failure_logic = 'Response json path {path} has no value matching {value}'.format(path=path,value=value)
-        assertfail(verb=context.httpstate['verb'],
+        assertionthing(verb=context.httpstate['verb'],
                     requesturl=context.httpstate['requesturi'],
                     requesthead=context.httpstate['requestheaders'],
                     request=context.httpstate['request'],
@@ -393,7 +432,7 @@ def step(context, path, value, valuetype, reason):
             """ Verify if string is within path, if so raise() """
             logging.error(ansi.OKBLUE +  "Gherkin input was " + str(type(value)) + " with value \"" + str(value) + "\" ... remote side contained a list with " + str(context.jsonsearch.returnpath(context.response.json(),path)) + "\n"+ansi.ENDC )
             failure_logic = 'Response json path {path} has value matching {value}'.format(path=path,value=value)
-            assertfail(verb=context.httpstate['verb'],
+            assertionthing(verb=context.httpstate['verb'],
                        requesturl=context.httpstate['requesturi'],
                        requesthead=context.httpstate['requestheaders'],
                        request=context.httpstate['request'],
@@ -408,7 +447,7 @@ def step(context, path, reason):
     if not context.jsonsearch.pathexists(context.response.json(),path):
         """ Verify if path exists first of all """
         failure_logic = 'Response does not have path {path}'.format(path=path)
-        assertfail(verb=context.httpstate['verb'],
+        assertionthing(verb=context.httpstate['verb'],
                     requesturl=context.httpstate['requesturi'],
                     requesthead=context.httpstate['requestheaders'],
                     request=context.httpstate['request'],
@@ -422,7 +461,7 @@ def step(context, path, reason):
     if context.jsonsearch.pathexists(context.response.json(),path):
         """ Verify if path exists , then fail """
         failure_logic = 'Response json has path {path}'.format(path=path)
-        assertfail(verb=context.httpstate['verb'],
+        assertionthing(verb=context.httpstate['verb'],
                     requesturl=context.httpstate['requesturi'],
                     requesthead=context.httpstate['requestheaders'],
                     request=context.httpstate['request'],
@@ -437,7 +476,7 @@ def step(context, status, reason):
     status = get_status_code(status)
     if context.response.status_code != status:
         failure_logic = 'Response status is {response.status_code}, not {status}'.format(response=context.response, status=status)
-        assertfail(verb=context.httpstate['verb'],
+        assertionthing(verb=context.httpstate['verb'],
                    requesturl=context.httpstate['requesturi'],
                    requesthead=context.httpstate['requestheaders'],
                    request=context.httpstate['request'],
@@ -451,7 +490,7 @@ def step(context, status, reason):
     status = get_status_code(status)
     if context.response.status_code == status:
         failure_logic = 'Response status is {status}'.format(status=status)
-        assertfail(verb=context.httpstate['verb'],
+        assertionthing(verb=context.httpstate['verb'],
                    requesturl=context.httpstate['requesturi'],
                    requesthead=context.httpstate['requestheaders'],
                    request=context.httpstate['request'],
