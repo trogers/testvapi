@@ -10,7 +10,7 @@ Feature: An example how your ops/qe process can revolutionize with BDD rest test
     Then the response json will have path "$.version.links[*].href." with value "https://identity.api.rackspacecloud.com/v2.0" as "str" failure means "Missing auth endpoint in json"
     Then the response json will have path "$.version.links[*].href." with value "http://docs.rackspacecloud.com/auth/api/v2.0/auth-client-devguide-latest.pdf" as "str" failure means "Missing documentation link in json"
     Then the response json will have path "$.version.links[*].href." with value "http://docs.rackspacecloud.com/auth/api/v2.0/auth.wadl" as "str" failure means "Missing WADL contract in json description"
-    Then the response will have status 200 failure means "badHttpCode"
+    Then the response will have status 201 failure means "badHttpCode"
   Examples:
   | myendpoints |
   | https://identity.api.rackspacecloud.com |

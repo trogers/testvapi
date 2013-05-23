@@ -126,7 +126,7 @@ def assertionthing(**kwargs):
         message['_responsedata'] = str(response)
         print('::: Graylog message sent as ' + str(message))
         gelfy = Client()
-        gelfy.log(json.dumps(message),'')
+        gelfy.log(json.dumps(message),'10.14.247.240')
     
     # Raise typical unit testing exception.
     raise AssertionError(ansi.OKBLUE + "\nRESOURCE .......: " + ansi.FAIL + str(requesturl)   + 
