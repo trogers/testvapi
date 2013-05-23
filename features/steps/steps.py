@@ -116,8 +116,8 @@ def assertionthing(**kwargs):
             message['level']    = '6'
         else:
             message['level']    = '3'
-        message['facility']     = 'valkyrie_testvapi.GELF'
-        message['host']         = 'fake-n01.prod.us.ccp.rackspace.net.example.com'
+        message['facility']     = 'GELF'
+        message['host']         = 'example.com'
         message['short_message'] = str(reason)
         message['full_message'] = str(logic)
         message['_httpverb']    = str(verb)
@@ -126,7 +126,7 @@ def assertionthing(**kwargs):
         message['_responsedata'] = str(response)
         print('::: Graylog message sent as ' + str(message))
         gelfy = Client()
-        gelfy.log(json.dumps(message),'10.14.247.240')
+        gelfy.log(json.dumps(message),'')
     
     # Raise typical unit testing exception.
     raise AssertionError(ansi.OKBLUE + "\nRESOURCE .......: " + ansi.FAIL + str(requesturl)   + 
