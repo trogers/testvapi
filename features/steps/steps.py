@@ -1,5 +1,5 @@
 
-graylog_server = False # '10.14.247.240' # False value means turn greylogging off.
+graylog_server = False # False value means turn greylogging off.
 graylog_facility = 'valkyrietest.GELF'
 
 #########################################################################
