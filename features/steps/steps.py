@@ -218,7 +218,7 @@ def step(context, seconds):
 
 ##################################
 # Whens
-@when('I get "{path}""')                                                 #feature-complee
+@when('I get "{path}"')                                                 #feature-complee
 def step(context, path):
     """ GET request within path context of server.
         You know, think: 
