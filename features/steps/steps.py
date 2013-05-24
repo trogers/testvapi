@@ -192,7 +192,6 @@ def assertionthing(**kwargs):
         message['_url']                     = str(requesturl)
         message['_path']                     = str(requestpath)
         try:
-            print message
             gelfinstance = graylogclient()
             gelfinstance.log(json.dumps(message),graylog_server) # writeout 
         except:
