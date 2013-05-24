@@ -1,4 +1,4 @@
-graylog_server = '127.0.0.1'  # If this was a string 
+graylog_server = '10.14.247.240'  # If this was a string 
                         # to a graylog server all your messages 
                         # would magically go there.
 
@@ -161,7 +161,7 @@ def assertionthing(**kwargs):
 
     # Logs some useful debugging data to stdout for QE
     print('HTTP.DEBUG....HTTP.DEBUG....HTTP.DEBUG....HTTP.DEBUG....HTTP.DEBUG')
-    print('>>>> Request Head for (' + verb + " " + requesturl + ') <<<<')
+    print('>>>> Request Head for (' + verb + " " + host + ') <<<<')
     print(requesthead)
     print('>>>> Request Data <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
     print(request)
@@ -188,9 +188,11 @@ def assertionthing(**kwargs):
         message['_testoutcome']      = str(logic)
         message['_http_verb']                    = str(verb)
         message['_http_status']                  = str(statuscode)
-        message['_http_latency']                 = str(latency)
-        message['_url']                     = str(requesturl)
-        message['_path']                     = str(requestpath)
+        if latency != '-1.000': # Hack, you can inseert -1000 to omit this field.
+            message['_http_latency']                 = str(latency)
+        message['_resource']                     = str(requesturl)
+        message['_subpath']                     = str(requestpath)
+        print message
         try:
             gelfinstance = graylogclient()
             gelfinstance.log(json.dumps(message),graylog_server) # writeout 
@@ -205,12 +207,12 @@ def assertionthing(**kwargs):
 
 
 # Givens
-@given('I send a socket to {host}')                       #untested
-def step(context, host):
-    stepsyntax = 'i can connect to {host}'.format(host=host)
-    """ Attempt to connect to remote host or endpoint of some kind via TCP. Fail otherwise. """
-    context.connecthost = host
-    
+#@given('I send a socket to {host}')                       #untested
+#def step(context, host):
+#    stepsyntax = 'i can connect to {host}'.format(host=host)
+#    """ Attempt to connect to remote host or endpoint of some kind via TCP. Fail otherwise. """
+#    context.connecthost = host
+#    
 
 @given('my request has the auth token "{token}"')                       #feature-complee
 def step(context, token):
@@ -243,37 +245,42 @@ def step(context, seconds):
 ##################################
 # Whens
 
-@when('I connect on port {port} it must respond within {timeout} seconds')
-@when('I connect on port {port} it must respond within {timeout} second')
-def step(context,port,timeout):
-    stepsyntax='I connect on port {port} it must respond within {timeout} seconds'.format(port=port,timeout=timeout)
+@when('I connect to {host} on port {port} then it must respond within {timeout} seconds')
+@when('I connect to {host} on port {port} then it must respond within {timeout} second')
+def step(context,host,port,timeout):
+    stepsyntax='I connect to {host} on port {port} then it must respond within {timeout} seconds'.format(host=host,port=port,timeout=timeout)
     failure_logic = 'Port is unavailable'
+    # Below is a horrible hack to get the hostnames for endpoints to be targetted.
+    #  a redesign is immenent.
+    hostname = getfqdn() # getfdqn() will lookup the localname, then set it to the value of PTR if its there
+                         # if it differs.
+                         # on the otherhand gethostname() always pulls the localname, no reverse lookups
+    requesturl = 'SocketOrigin://' + str(hostname)
     try:
         before = time.time()
         port = int(port)
         timeout = float(timeout)
-        bannerdata = tcpbanner(context.connecthost,port,timeout)
+        bannerdata = tcpbanner(host,port,timeout)
         after = time.time()
         latency = after - before
-
-        assertionthing(success=True,verb='null',
-                    requesturl='null',
-                    requesthead='null',
+        assertionthing(success=True,verb='SOCKET',
+                    requesturl=requesturl,
+                    requesthead=None,
                     request='Is this port online?',
-                    responsehead='null',
+                    responsehead=None,
                     response=str(bannerdata),
                     reason='null', gherkinstep=stepsyntax,
-                    logic=failure_logic,statuscode='-1',latency=latency)
+                    logic=failure_logic,statuscode=None,latency=latency)
     except:
         failure_logic = "Socket " +traceback.format_exc()
-        assertionthing(success=False,verb='null',
-                    requesturl='null',
-                    requesthead='null',
+        assertionthing(success=False,verb='SOCKET',
+                    requesturl=requesturl,
+                    requesthead=None,
                     request='Is this port online?',
-                    responsehead='null',
+                    responsehead=None,
                     response='null',
                     reason='null', gherkinstep=stepsyntax,
-                    logic=failure_logic,statuscode=-1,latency=-1,)
+                    logic=failure_logic,statuscode=None,latency=-1.000,)
 
 @when('I get "{path}"')                                                 #feature-complee
 def step(context, path):
