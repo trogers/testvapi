@@ -1,18 +1,39 @@
+graylog_server = False  # If this was a string 
+                        # to a graylog server all your messages 
+                        # would magically go there.
 
-graylog_server = False # False value means turn greylogging off.
-graylog_facility = 'valkyrietest.GELF'
+graylog_facility = 'valkyrietest.GELF' # A graylog setting.
+
+###########################################################################
+# Author: Jon Kelley <jon.kelley@rackspace>                               #
+# Date: May 23 2013                                                       #
+# Title:  Testvapi. TestvalueAPI. It tests the values and stuff.          #
+# Purpose:                                                                #
+#        This nifty program lets you unittest any API using restful       #
+#        Gherkin style language syntax. It has optional hooks for greylog.#
+#        It's the ultimate ops/QE testing tool ever for restful API's.    #
+#                                                                         #
+#        Find examples, source, instructions on github.                   #
+#             https://github.com/jonkelleyatrackspace/testvapi            #
+# Python Version: 2.7.3 ###################################################
+#  Dependecies:         # 
+#    behave  1.2.2      #
+#    requests 1.2.0     #
+#    jsonpath 0.54      #
+#########################
 
 #########################################################################
-## XXX ### The giant wall of importation devices.                      ##
+# Giant wall of importation devices.                                    #
 #########################################################################
 from behave import *                                                    # =>  Behave makes sure the API's behave, man.
-import requests                                                         # =>  HTTP ez bro.
-from urlparse import urljoin                                            # =>  Allows url manip.
+import requests                                                         # =>  <3
+from urlparse import urljoin                                            # =>  Allows url manipulation.
 from urlparse import urlparse                                           # =>  For greylog gethostname byurl
-import logging; logging.basicConfig(level=logging.CRITICAL)             # =>  Only make CRIT filtered out,
-import json                                                             # =>  I presume a json api unittest will use this funct.
+import logging; logging.basicConfig(level=logging.CRITICAL)             # =>  Only make CRIT filtered to stdout
+import json                                                             # =>  We use this.
 import traceback                                                        # =>  traceback.format_exc()!
-import time                                                             # =>  Benchmarking.
+import time                                                             # =>  For request time benchmarking.
+from socket import *; import zlib                                       # =>  For the graylogclient class.
 #########################################################################
 
 """ This step test implements RESTful API testing towards any API, 
@@ -54,6 +75,19 @@ class ansi:
     HEADER = '\033[95m';  OKBLUE = '\033[94m'; OKGREEN = '\033[92m'
     WARNING = '\033[93m'; FAIL   = '\033[91m' ;ENDC    = '\033[0m'
 
+if not graylog_server:
+    logging.critical(ansi.OKBLUE + "=========================================================" + ansi.ENDC)# THX STYLE INTRO
+    logging.critical(ansi.OKBLUE + "testvapi :: Testing the values of all your apis          " + ansi.ENDC)# THX STYLE INTRO
+    logging.critical(ansi.OKBLUE + "testvapi ::    while you relax                           " + ansi.ENDC)# THX STYLE INTRO
+    logging.critical(ansi.OKBLUE + "testvapi ::       on the top some mountains              " + ansi.ENDC)# THX STYLE INTRO
+    logging.critical(ansi.OKBLUE + "testvapi ::    with a bottle of scotch                   " + ansi.ENDC)# THX STYLE INTRO
+    logging.critical(ansi.OKBLUE + "testvapi ::          and laserbeams and greylog          " + ansi.ENDC)# THX STYLE INTRO
+    logging.critical(ansi.OKBLUE + "testvapi :: on your android phone and stuff.             " + ansi.ENDC)# THX STYLE INTRO
+    logging.critical(ansi.OKBLUE + "testvapi ::                well                          " + ansi.ENDC)# THX STYLE INTRO
+    logging.critical(ansi.OKBLUE + "testvapi ::                      almost anyway.          " + ansi.ENDC)# THX STYLE INTRO
+    logging.critical(ansi.OKBLUE + "AUTHOR   :: Jon.Kelley@rackspace                         " + ansi.ENDC)# THX STYLE INTRO
+    logging.critical(ansi.OKBLUE + "=========================================================" + ansi.ENDC)# THX STYLE INTRO
+
 def get_status_code(status):
     try:
         return int(status)
@@ -61,26 +95,32 @@ def get_status_code(status):
         # Trick to accept status strings like 'not_found', as well.
         return getattr(requests.codes, status)
 
+class graylogclient():
+    """ from socket import *; import zlib
+        Hi there, this is the little graylog client. Connects to ports and stuff
+        based on funct args. """
+    def log(self, message, server='localhost', port=12201, maxChunkSize=8154):
+            graylog2_server = server
+            graylog2_port = port
+            maxChunkSize = maxChunkSize
 
-#############################################
-from socket import *
-import zlib
-class Client():
-        def log(self, message, server='localhost', port=12201, maxChunkSize=8154):
-                graylog2_server = server
-                graylog2_port = port
-                maxChunkSize = maxChunkSize
-
-                UDPSock = socket(AF_INET,SOCK_DGRAM)
-                zmessage = zlib.compress(message)
-                UDPSock.sendto(zmessage,(graylog2_server,graylog2_port))
-                UDPSock.close()
-
+            UDPSock = socket(AF_INET,SOCK_DGRAM)
+            zmessage = zlib.compress(message)
+            UDPSock.sendto(zmessage,(graylog2_server,graylog2_port))
+            UDPSock.close()
 
 def assertionthing(**kwargs):
-    """ Assertion thing that rolls up the whole process good or bad.
-    
-    It's typically hooked by greylog for ops level inputs.
+    """ This is a giant event processor thing.
+        I'll clean it up and break it out later I promise.
+        
+        Any event it basically evaluates based on if it's FAIL or not, and then
+        aggregates and collects the data from the entire unit test from kwargs.
+        
+        If run from the TTY it's also what throws the assertion failures that you
+        see on your console.
+        
+        It also hooks greylog in this area to funnel all your datas to the internets
+        in the event you have an IP configured instead of false.
     """
     statuscode     = kwargs.get('statuscode',None)
     latency     = kwargs.get('latency',None)
@@ -101,7 +141,7 @@ def assertionthing(**kwargs):
     reason          = kwargs.get('reason',None)             # The reason we failed humanly aka RCA
     logic           = kwargs.get('logic',None)              # The logic why we failed 'parse error'
 
-    # Logs some useful debugging data to stdout.
+    # Logs some useful debugging data to stdout for QE
     print('HTTP.DEBUG....HTTP.DEBUG....HTTP.DEBUG....HTTP.DEBUG....HTTP.DEBUG')
     print('>>>> Request Head for (' + verb + " " + requesturl + ') <<<<')
     print(requesthead)
@@ -113,7 +153,7 @@ def assertionthing(**kwargs):
     print(response)
     print('END.HTTP.DEBUG....END.HTTP.DEBUG....END.HTTP.DEBUG....END.HTTP.DEB')
 
-    # This does the graylog magic out.
+    # Logs the magical and wonderful outputs to graylog for OPS.
     if graylog_server:
         message = {}
         message['version']      = '1.0'
@@ -133,10 +173,11 @@ def assertionthing(**kwargs):
         message['_http_latency']                 = str(latency)
         message['_url']                     = str(requesturl)
         message['_path']                     = str(requestpath)
-        print('::: Graylog message sent as ' + str(message))
-        gelfy = Client()
-        gelfy.log(json.dumps(message),graylog_server) # writeout 
-
+        try:
+            gelfinstance = graylogclient()
+            gelfinstance.log(json.dumps(message),graylog_server) # writeout 
+        except:
+            print("Graylog send request error. I don't know why!!!!")
 
     # Raise typical unit testing exception.
     if not _success:
@@ -144,12 +185,6 @@ def assertionthing(**kwargs):
                              ansi.OKBLUE + "\nRCA ............: " + ansi.FAIL + str(reason) +
                              ansi.OKBLUE + "\nUNDERLYING_LOGIC: " + ansi.FAIL + str(logic)  + ansi.ENDC)
 
-# Intro banner.
-if not graylog_server:
-    logging.critical(ansi.OKBLUE + "=========================================================" + ansi.ENDC)# THX STYLE INTRO
-    logging.critical(ansi.OKBLUE + "testvapi :: \n                          Test {value} api\n                          Tests the values of your beloved API.\n                          " + ansi.OKGREEN + "See github for more information.\n                          https://github.com/jonkelleyatrackspace/testvapi\n                          " + ansi.FAIL + "Author: Jon_K <jon.kelley@rackspace.com>" + ansi.ENDC)# THX STYLE INTRO
-    logging.critical(ansi.OKBLUE + "=========================================================" + ansi.ENDC)# THX STYLE INTRO
-    
 
 # Givens
 @given('my request has the auth token "{token}"')                       #feature-complee
