@@ -1,4 +1,4 @@
-graylog_server = False  # If this was a string 
+graylog_server = '127.0.0.1'  # If this was a string 
                         # to a graylog server all your messages 
                         # would magically go there.
 
@@ -34,6 +34,7 @@ import json                                                             # =>  We
 import traceback                                                        # =>  traceback.format_exc()!
 import time                                                             # =>  For request time benchmarking.
 from socket import *; import zlib                                       # =>  For the graylogclient class.
+                                                                        # => and for banner fetcher
 #########################################################################
 # TODO Unhook reason='null' from giant exceptor class. Its redundant.
 
@@ -110,6 +111,22 @@ class graylogclient():
             UDPSock.sendto(zmessage,(graylog2_server,graylog2_port))
             UDPSock.close()
 
+def tcpbanner(targetHost, targetPort, timeOut):
+    """ from socket import *
+        Crafty way to retrieve socket banneers . up to a whole 100 bytes!!@96 
+        >> tcpbanner(target_host, target_port)
+        
+        No exception wrapper, do it on your end!!
+        """
+
+    connsocket = socket(AF_INET, SOCK_STREAM)
+    connsocket.settimeout(timeOut)
+    connsocket.connect((targetHost, targetPort))
+    connsocket.send('Hi there\r\n')
+    results = connsocket.recv(100)
+    print '' + str(results)
+    connsocket.close()
+
 def assertionthing(**kwargs):
     """ This is a giant event processor thing.
         I'll clean it up and break it out later I promise.
@@ -175,6 +192,7 @@ def assertionthing(**kwargs):
         message['_url']                     = str(requesturl)
         message['_path']                     = str(requestpath)
         try:
+            print message
             gelfinstance = graylogclient()
             gelfinstance.log(json.dumps(message),graylog_server) # writeout 
         except:
@@ -188,6 +206,13 @@ def assertionthing(**kwargs):
 
 
 # Givens
+@given('I send a socket to {host}')                       #untested
+def step(context, host):
+    stepsyntax = 'i can connect to {host}'.format(host=host)
+    """ Attempt to connect to remote host or endpoint of some kind via TCP. Fail otherwise. """
+    context.connecthost = host
+    
+
 @given('my request has the auth token "{token}"')                       #feature-complee
 def step(context, token):
     """ shunt style Add x-auth-header for token automagically """
@@ -218,6 +243,39 @@ def step(context, seconds):
 
 ##################################
 # Whens
+
+@when('I connect on port {port} it must respond within {timeout} seconds')
+@when('I connect on port {port} it must respond within {timeout} second')
+def step(context,port,timeout):
+    stepsyntax='I connect on port {port} it must respond within {timeout} seconds'.format(port=port,timeout=timeout)
+    failure_logic = 'Port is unavailable'
+    try:
+        before = time.time()
+        port = int(port)
+        timeout = float(timeout)
+        bannerdata = tcpbanner(context.connecthost,port,timeout)
+        after = time.time()
+        latency = after - before
+
+        assertionthing(success=True,verb='null',
+                    requesturl='null',
+                    requesthead='null',
+                    request='Is this port online?',
+                    responsehead='null',
+                    response=str(bannerdata),
+                    reason='null', gherkinstep=stepsyntax,
+                    logic=failure_logic,statuscode='-1',latency=latency)
+    except:
+        failure_logic = "Socket " +traceback.format_exc()
+        assertionthing(success=False,verb='null',
+                    requesturl='null',
+                    requesthead='null',
+                    request='Is this port online?',
+                    responsehead='null',
+                    response='null',
+                    reason='null', gherkinstep=stepsyntax,
+                    logic=failure_logic,statuscode=-1,latency=-1,)
+
 @when('I get "{path}"')                                                 #feature-complee
 def step(context, path):
     """ GET request within path context of server.
