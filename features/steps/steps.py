@@ -1,10 +1,4 @@
-graylog_server = '10.14.247.240'  # If this was a string 
-                        # to a graylog server all your messages 
-                        # would magically go there.
-
-graylog_facility = 'valkyrietest.GELF' # A graylog setting.
-
-###########################################################################
+#!/usr/bin/env python
 # Author: Jon Kelley <jon.kelley@rackspace>                               #
 # Date: May 23 2013                                                       #
 # Title:  Testvapi. TestvalueAPI. It tests the values and stuff.          #
@@ -16,15 +10,35 @@ graylog_facility = 'valkyrietest.GELF' # A graylog setting.
 #        Find examples, source, instructions on github.                   #
 #             https://github.com/jonkelleyatrackspace/testvapi            #
 # Python Version: 2.7.3 ###################################################
-#  Dependecies:         # 
+#  Dependecies:         # The dude abides. 
 #    behave  1.2.2      #
 #    requests 1.2.0     #
 #    jsonpath 0.54      #
 #########################
 
+########################################################################
+# Test Settings
+#-----------------------------------------------------------------------
+# Graylog  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+graylog_server      = '127.0.0.1'       # If this was a string 
+                                            # to a graylog server all your messages 
+                                            # would magically go there.
+                                            # Else False is disabled.
+                                        
+graylog_facility    = 'valkyrietest.GELF'  # Your graylog faculity
+
+# Requests options %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+verify_ssl_certificates    = False          # If your SSL certs are bad
+                                            # you will get nasty exceptions.
+                                            # You should have good SSL certs.
+                                            # If you don't, set this to False.
+                                            # Then fix your certs.
+                                            # Then set this to true.
+########################################################################
+
 #########################################################################
 # Giant wall of importation devices.                                    #
-#########################################################################
+#-----------------------------------------------------------------------#
 from behave import *                                                    # =>  Behave makes sure the API's behave, man.
 import requests                                                         # =>  <3
 from urlparse import urljoin                                            # =>  Allows url manipulation.
@@ -299,9 +313,10 @@ def step(context, path):
 
     try:
         timebench_before = time.time()
-        context.response = requests.get(url, timeout=timeout,headers=context.request_headers) # Makes full response.
+        context.response = requests.get(url, timeout=timeout,headers=context.request_headers, verify=verify_ssl_certificates) # Makes full response.
         timebench_after = time.time()
         _latency = timebench_after - timebench_before
+        
         try:    _statuscode         = str(context.response.status_code)
         except: _statuscode         = '-1'
         try:    _requestheaders     = str(context.request_headers)
@@ -358,7 +373,7 @@ def step(context, path):# XXX UNTESTED XXX
     except AttributeError:
         timeout = None
     timebench_before = time.time()
-    context.response = requests.delete(url,timeout=timeout,headers=context.request_headers) # Makes full response.
+    context.response = requests.delete(url,timeout=timeout,headers=context.request_headers, verify=verify_ssl_certificates) # Makes full response.
     timebench_after = time.time()
     
     _latency = timebench_after - timebench_before
@@ -392,7 +407,7 @@ def step(context, path,payload):
         timeout = None
 
     timebench_before = time.time()
-    context.response = requests.post(url, data=payload,timeout=timeout,headers=context.request_headers) # Makes full response.
+    context.response = requests.post(url, data=payload,timeout=timeout,headers=context.request_headers, verify=verify_ssl_certificates) # Makes full response.
     timebench_after = time.time()
     
     _latency = timebench_after - timebench_before
@@ -427,7 +442,7 @@ def step(context, path,payload):
     except AttributeError:
         timeout = None
     timebench_before = time.time()
-    context.response = requests.put(url, data=payload,timeout=timeout,headers=context.request_headers) # Makes full response.
+    context.response = requests.put(url, data=payload,timeout=timeout,headers=context.request_headers, verify=verify_ssl_certificates) # Makes full response.
     timebench_after = time.time()
     
     _latency = timebench_after - timebench_before
