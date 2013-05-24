@@ -35,6 +35,7 @@ import traceback                                                        # =>  tr
 import time                                                             # =>  For request time benchmarking.
 from socket import *; import zlib                                       # =>  For the graylogclient class.
 #########################################################################
+# TODO Unhook reason='null' from giant exceptor class. Its redundant.
 
 """ This step test implements RESTful API testing towards any API, 
     but specifically tailored for Rackspace API testing.
@@ -217,8 +218,8 @@ def step(context, seconds):
 
 ##################################
 # Whens
-@when('I get "{path}" failure means "{reason}"')                                                 #feature-complee
-def step(context, path, reason):
+@when('I get "{path}""')                                                 #feature-complee
+def step(context, path):
     """ GET request within path context of server.
         You know, think: 
                         I get "cloud_account/9363835"
@@ -264,10 +265,10 @@ def step(context, path, reason):
                     request=context.httpstate['request'],
                     responsehead=context.httpstate['responseheaders'],
                     response=context.httpstate['response'],
-                    reason=reason, gherkinstep=stepsyntax,
+                    reason='null', gherkinstep=stepsyntax,
                     logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
-@when('I delete "{path}" failure means "{reason}"')                                              # TODO untested XXX
-def step(context, path, reason):# XXX UNTESTED XXX
+@when('I delete "{path}"')                                              # TODO untested XXX
+def step(context, path):# XXX UNTESTED XXX
     """ Entirely untested.
         DELETE request within path context of server.
         You know, think: 
@@ -304,8 +305,8 @@ def step(context, path, reason):# XXX UNTESTED XXX
                             'statuscode'      : _statuscode
                         }
 #TODO @when('I post "{path}" payload file "{payload}"')    
-@when('I post "{path}" with payload "{payload}" failure means "{reason}"')                        # feature-complete
-def step(context, path,payload, reason):
+@when('I post "{path}" with payload "{payload}"')                        # feature-complete
+def step(context, path,payload):
     stepsyntax = "I post {path}".format(path=path)
     url = urljoin(context.request_endpoint, path)
     try: # There's got to be a better way to set None if missing/attributerror
@@ -339,8 +340,8 @@ def step(context, path,payload, reason):
                         }
     
 #TODO @when('I put "{path}" payload file "{payload}"')  
-@when('I put "{path}" with payload "{payload}" failure means "{reason}"')                        # TODO untested XXX
-def step(context, path,payload, reason):
+@when('I put "{path}" with payload "{payload}"')                        # TODO untested XXX
+def step(context, path,payload):
     """ Entirely and completely untested """
     stepsyntax = "I put {path}".format(path=path)
     url = urljoin(context.request_endpoint, path)
@@ -377,8 +378,8 @@ def step(context, path,payload, reason):
 
 ##################################
 # Thens
-@then('the response will contain string "{text}" failure means "{reason}"')                      # feature-complete
-def step(context, text, reason):
+@then('the response will contain string "{text}"')                      # feature-complete
+def step(context, text):
     stepsyntax = "the response will contain string {text}".format(text=text)
     failure_logic   = 'Did not find expected text `{text}` in response.'.format(text=text )
     if text not in context.response.text:
@@ -388,7 +389,7 @@ def step(context, text, reason):
                    request=context.httpstate['request'],
                    responsehead=context.httpstate['responseheaders'],
                    response=context.httpstate['response'],
-                   reason=reason, gherkinstep=stepsyntax,
+                   reason='null', gherkinstep=stepsyntax,
                    logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
     else:
         failure_logic = 'OK'
@@ -398,11 +399,11 @@ def step(context, text, reason):
                    request=context.httpstate['request'],
                    responsehead=context.httpstate['responseheaders'],
                    response=context.httpstate['response'],
-                   reason=reason, gherkinstep=stepsyntax,
+                   reason='null', gherkinstep=stepsyntax,
                    logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
 
-@then('the response will not contain string "{text}" failure means "{reason}"')                  # feature-complete
-def step(context, text, reason):
+@then('the response will not contain string "{text}"')                  # feature-complete
+def step(context, text):
     stepsyntax = "the response will not contain string {text}".format(text=text)
     if text in context.response.text:
         failure_logic = 'Found string `{text}` in response.'.format(text=text)
@@ -412,7 +413,7 @@ def step(context, text, reason):
                    request=context.httpstate['request'],
                    responsehead=context.httpstate['responseheaders'],
                    response=context.httpstate['response'],
-                   reason=reason, gherkinstep=stepsyntax,
+                   reason='null', gherkinstep=stepsyntax,
                    logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
     else:
         failure_logic = 'OK'
@@ -422,10 +423,10 @@ def step(context, text, reason):
                    request=context.httpstate['request'],
                    responsehead=context.httpstate['responseheaders'],
                    response=context.httpstate['response'],
-                   reason=reason, gherkinstep=stepsyntax,
+                   reason='null', gherkinstep=stepsyntax,
                    logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
-@then('the response will have the header "{header}" with the value "{value}" failure means "{reason}"') # feature-complete
-def step(context, header, value, reason):
+@then('the response will have the header "{header}" with the value "{value}"') # feature-complete
+def step(context, header, value):
     stepsyntax = "the response will have the header {header} with the value {value}".format(header=header,value=value)
     if context.response.headers[header] != value:
         failure_logic = 'HTTP header `{header}` => `{value}` missing in response.'.format(header=header,value=value)
@@ -435,7 +436,7 @@ def step(context, header, value, reason):
                    request=context.httpstate['request'],
                    responsehead=context.httpstate['responseheaders'],
                    response=context.httpstate['response'],
-                   reason=reason, gherkinstep=stepsyntax,
+                   reason='null', gherkinstep=stepsyntax,
                    logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
     else:
         failure_logic = 'OK'
@@ -445,10 +446,10 @@ def step(context, header, value, reason):
                    request=context.httpstate['request'],
                    responsehead=context.httpstate['responseheaders'],
                    response=context.httpstate['response'],
-                   reason=reason, gherkinstep=stepsyntax,
+                   reason='null', gherkinstep=stepsyntax,
                    logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
-@then('the response will have the header "{header}" failure means "{reason}"')                   # feature-complete
-def step(context, header, reason):
+@then('the response will have the header "{header}"')                   # feature-complete
+def step(context, header):
     stepsyntax = "the response will have the header {header}".format(header=header)
     if header not in context.response.headers.keys():
 #        logging.debug("I saw these headers though...")
@@ -461,7 +462,7 @@ def step(context, header, reason):
                    request=context.httpstate['request'],
                    responsehead=context.httpstate['responseheaders'],
                    response=context.httpstate['response'],
-                   reason=reason, gherkinstep=stepsyntax,
+                   reason='null', gherkinstep=stepsyntax,
                    logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
     else:
         failure_logic = 'OK'
@@ -471,10 +472,10 @@ def step(context, header, reason):
                    request=context.httpstate['request'],
                    responsehead=context.httpstate['responseheaders'],
                    response=context.httpstate['response'],
-                   reason=reason, gherkinstep=stepsyntax,
+                   reason='null', gherkinstep=stepsyntax,
                    logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
-@then('the response will not have the header "{header}" with the value "{value}" failure means "{reason}"')# feature-complete
-def step(context, header, value, reason):
+@then('the response will not have the header "{header}" with the value "{value}"')# feature-complete
+def step(context, header, value):
     stepsyntax = "the response will not have the header {header} with the value {value}".format(header=header,value=value)
     if context.response.headers[header] == value:
         failure_logic = 'HTTP header `{header}` => `{value}` found in response.'.format(header=header,value=value)
@@ -484,7 +485,7 @@ def step(context, header, value, reason):
                    request=context.httpstate['request'],
                    responsehead=context.httpstate['responseheaders'],
                    response=context.httpstate['response'],
-                   reason=reason, gherkinstep=stepsyntax,
+                   reason='null', gherkinstep=stepsyntax,
                    logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
     else:
         failure_logic = 'OK'
@@ -494,9 +495,9 @@ def step(context, header, value, reason):
                    request=context.httpstate['request'],
                    responsehead=context.httpstate['responseheaders'],
                    response=context.httpstate['response'],
-                   reason=reason, gherkinstep=stepsyntax,
+                   reason='null', gherkinstep=stepsyntax,
                    logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
-@then('the response will not have the header "{header}" failure means "{reason}"')               # feature-complete
+@then('the response will not have the header "{header}"')               # feature-complete
 def step(context, header,reason):
     stepsyntax = "the response will not have the header {header}".format(header=header)
     if context.response.headers[header]:
@@ -507,7 +508,7 @@ def step(context, header,reason):
                    request=context.httpstate['request'],
                    responsehead=context.httpstate['responseheaders'],
                    response=context.httpstate['response'],
-                   reason=reason, gherkinstep=stepsyntax,
+                   reason='null', gherkinstep=stepsyntax,
                    logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
     else:
         failure_logic = 'OK'
@@ -517,10 +518,10 @@ def step(context, header,reason):
                    request=context.httpstate['request'],
                    responsehead=context.httpstate['responseheaders'],
                    response=context.httpstate['response'],
-                   reason=reason, gherkinstep=stepsyntax,
+                   reason='null', gherkinstep=stepsyntax,
                    logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
-@then('the response json will have path "{path}" with value "{value}" as "{valuetype}" failure means "{reason}"') # feature-complete
-def step(context, path, value, valuetype, reason):
+@then('the response json will have path "{path}" with value "{value}" as "{valuetype}"') # feature-complete
+def step(context, path, value, valuetype):
     stepsyntax = "the response json will have the path {path} with value {value} as {valuetype}".format(path=path,value=value,valuetype=valuetype)
     # Check path exists 
     try:
@@ -533,7 +534,7 @@ def step(context, path, value, valuetype, reason):
                         request=context.httpstate['request'],
                         responsehead=context.httpstate['responseheaders'],
                         response=context.httpstate['response'],
-                        reason=reason, gherkinstep=stepsyntax,
+                        reason='null', gherkinstep=stepsyntax,
                         logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
 
         # Effing unicode strings need hacks to determine their type.
@@ -559,7 +560,7 @@ def step(context, path, value, valuetype, reason):
                         request=context.httpstate['request'],
                         responsehead=context.httpstate['responseheaders'],
                         response=context.httpstate['response'],
-                        reason=reason, gherkinstep=stepsyntax,
+                        reason='null', gherkinstep=stepsyntax,
                         logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
         else:
             failure_logic = 'OK'
@@ -569,7 +570,7 @@ def step(context, path, value, valuetype, reason):
                        request=context.httpstate['request'],
                        responsehead=context.httpstate['responseheaders'],
                        response=context.httpstate['response'],
-                       reason=reason, gherkinstep=stepsyntax,
+                       reason='null', gherkinstep=stepsyntax,
                        logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
     except:
         failure_logic = traceback.format_exc()
@@ -579,10 +580,10 @@ def step(context, path, value, valuetype, reason):
                     request=context.httpstate['request'],
                     responsehead=context.httpstate['responseheaders'],
                     response=context.httpstate['response'],
-                    reason=reason, gherkinstep=stepsyntax,
+                    reason='null', gherkinstep=stepsyntax,
                     logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
-@then('the response json will not have path "{path}" with value "{value}" as "{valuetype}" failure means "{reason}"') # feature-complete
-def step(context, path, value, valuetype, reason):
+@then('the response json will not have path "{path}" with value "{value}" as "{valuetype}"') # feature-complete
+def step(context, path, value, valuetype):
     stepsyntax = "the response json will not have the path {path} with value {value} as {valuetype}".format(path=path,value=value,valuetype=valuetype)
     # If path even exists..
     try:
@@ -610,7 +611,7 @@ def step(context, path, value, valuetype, reason):
                            request=context.httpstate['request'],
                            responsehead=context.httpstate['responseheaders'],
                            response=context.httpstate['response'],
-                           reason=reason, gherkinstep=stepsyntax,
+                           reason='null', gherkinstep=stepsyntax,
                            logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
             else:
                 failure_logic = 'OK'
@@ -620,7 +621,7 @@ def step(context, path, value, valuetype, reason):
                            request=context.httpstate['request'],
                            responsehead=context.httpstate['responseheaders'],
                            response=context.httpstate['response'],
-                           reason=reason, gherkinstep=stepsyntax,
+                           reason='null', gherkinstep=stepsyntax,
                            logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
     except:
         failure_logic = traceback.format_exc()
@@ -630,10 +631,10 @@ def step(context, path, value, valuetype, reason):
                     request=context.httpstate['request'],
                     responsehead=context.httpstate['responseheaders'],
                     response=context.httpstate['response'],
-                    reason=reason, gherkinstep=stepsyntax,
+                    reason='null', gherkinstep=stepsyntax,
                     logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
-@then('the response json will have path "{path}" failure means "{reason}"')                      # feature-complete
-def step(context, path, reason):
+@then('the response json will have path "{path}"')                      # feature-complete
+def step(context, path):
     stepsyntax = "the response json will have path {path}".format(path=path)
     #raise Exception(context.response.json())
     try:
@@ -646,7 +647,7 @@ def step(context, path, reason):
                         request=context.httpstate['request'],
                         responsehead=context.httpstate['responseheaders'],
                         response=context.httpstate['response'],
-                        reason=reason, gherkinstep=stepsyntax,
+                        reason='null', gherkinstep=stepsyntax,
                         logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
         else:
             failure_logic = 'OK'
@@ -656,7 +657,7 @@ def step(context, path, reason):
                        request=context.httpstate['request'],
                        responsehead=context.httpstate['responseheaders'],
                        response=context.httpstate['response'],
-                       reason=reason, gherkinstep=stepsyntax,
+                       reason='null', gherkinstep=stepsyntax,
                        logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
     except:
         failure_logic = traceback.format_exc()
@@ -666,10 +667,10 @@ def step(context, path, reason):
                     request=context.httpstate['request'],
                     responsehead=context.httpstate['responseheaders'],
                     response=context.httpstate['response'],
-                    reason=reason, gherkinstep=stepsyntax,
+                    reason='null', gherkinstep=stepsyntax,
                     logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
-@then('the response json will not have path "{path}" failure means "{reason}"')                  # feature-complete
-def step(context, path, reason):
+@then('the response json will not have path "{path}"')                  # feature-complete
+def step(context, path):
     stepsyntax = "the response json will not have path {path}".format(path=path)
     try:
         if context.jsonsearch.pathexists(context.response.json(),path):
@@ -681,7 +682,7 @@ def step(context, path, reason):
                         request=context.httpstate['request'],
                         responsehead=context.httpstate['responseheaders'],
                         response=context.httpstate['response'],
-                        reason=reason, gherkinstep=stepsyntax,
+                        reason='null', gherkinstep=stepsyntax,
                         logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
         else:
             failure_logic = 'OK'
@@ -691,7 +692,7 @@ def step(context, path, reason):
                        request=context.httpstate['request'],
                        responsehead=context.httpstate['responseheaders'],
                        response=context.httpstate['response'],
-                       reason=reason, gherkinstep=stepsyntax,
+                       reason='null', gherkinstep=stepsyntax,
                        logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
     except:
         failure_logic = traceback.format_exc()
@@ -701,10 +702,10 @@ def step(context, path, reason):
                     request=context.httpstate['request'],
                     responsehead=context.httpstate['responseheaders'],
                     response=context.httpstate['response'],
-                    reason=reason, gherkinstep=stepsyntax,
+                    reason='null', gherkinstep=stepsyntax,
                     logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
-@then('the response will have status {status} failure means "{reason}"')
-def step(context, status, reason):
+@then('the response will have status {status}')
+def step(context, status):
     stepsyntax = "the response will have status {status}".format(status=status)
     try:
         status = get_status_code(status)
@@ -716,7 +717,7 @@ def step(context, status, reason):
                        request=context.httpstate['request'],
                        responsehead=context.httpstate['responseheaders'],
                        response=context.httpstate['response'],
-                       reason=reason, gherkinstep=stepsyntax,
+                       reason='null', gherkinstep=stepsyntax,
                        logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
     except:
         failure_logic = traceback.format_exc()
@@ -726,10 +727,10 @@ def step(context, status, reason):
                     request=context.httpstate['request'],
                     responsehead=context.httpstate['responseheaders'],
                     response=context.httpstate['response'],
-                    reason=reason, gherkinstep=stepsyntax,
+                    reason='null', gherkinstep=stepsyntax,
                     logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
-@then('the response will not have status {status} failure means "{reason}"')
-def step(context, status, reason):
+@then('the response will not have status {status}')
+def step(context, status):
     stepsyntax = "the response will not have status {status}".format(status=status)
     try:
         status = get_status_code(status)
@@ -741,7 +742,7 @@ def step(context, status, reason):
                        request=context.httpstate['request'],
                        responsehead=context.httpstate['responseheaders'],
                        response=context.httpstate['response'],
-                       reason=reason, gherkinstep=stepsyntax,
+                       reason='null', gherkinstep=stepsyntax,
                        logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
     except:
         failure_logic = traceback.format_exc()
@@ -751,5 +752,5 @@ def step(context, status, reason):
                     request=context.httpstate['request'],
                     responsehead=context.httpstate['responseheaders'],
                     response=context.httpstate['response'],
-                    reason=reason, gherkinstep=stepsyntax,
+                    reason='null', gherkinstep=stepsyntax,
                     logic=failure_logic,statuscode=context.httpstate['statuscode'],latency=context.httpstate['latency'],)
