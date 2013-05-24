@@ -225,18 +225,18 @@ def step(context, path):
                         I get "cloud_account/9363835"
     """
     stepsyntax = "I get {path}".format(path=path)
-    try:
-        context.requestpath = path
-        url = urljoin(context.request_endpoint, path)
-        try: # There's got to be a better way to set None if missing/attributerror
-            timeout = context.request_timeout
-        except AttributeError:
-            timeout = None
 
+    context.requestpath = path
+    url = urljoin(context.request_endpoint, path)
+    try: # There's got to be a better way to set None if missing/attributerror
+        timeout = context.request_timeout
+    except AttributeError:
+        timeout = None
+
+    try:
         timebench_before = time.time()
         context.response = requests.get(url, timeout=timeout,headers=context.request_headers) # Makes full response.
         timebench_after = time.time()
-        
         _latency = timebench_after - timebench_before
         try:    _statuscode         = str(context.response.status_code)
         except: _statuscode         = '-1'
@@ -248,14 +248,27 @@ def step(context, path):
         except: _responseheaders    = None
         try:    _response            = str(context.response.text)
         except: _response            = "Not applicable (No data?)" 
+        
+        # Nifty idea. Sends out equiv curlcommand for you to replicate.
+        curlcmd =  'curl -v '
+        curlcmd += ' -XGET '
+        curlcmd += ' --connect-timeout ' + str(int(timeout)) + ' '
+        for (header,value) in context.request_headers.items():
+           print header,value
+           if header == 'x-auth-token': value = '***CENSORED***'
+           curlcmd += "-H " + "\'" + header + ": " + value + "\' "
+        curlcmd += "\'"+url+"\'"
+
+        print curlcmd
+
         context.httpstate = { 'requesturi'      : url ,
-                              'verb'            : 'GET' ,
-                              'requestheaders'  : _requestheaders ,
-                              'request'         : _request ,
-                              'responseheaders' : _responseheaders ,
-                              'response'        : _response ,
-                              'latency'         : _latency,
-                              'statuscode'      : _statuscode
+                                'verb'            : 'GET' ,
+                                'requestheaders'  : _requestheaders ,
+                                'request'         : _request ,
+                                'responseheaders' : _responseheaders ,
+                                'response'        : _response ,
+                                'latency'         : _latency,
+                                'statuscode'      : _statuscode
                             }
     except:
         failure_logic = traceback.format_exc()
